@@ -1,0 +1,22 @@
+/* Device Inventory — Print stylesheet
+   Included in: base.html (media="print") */
+
+@media print {
+    header, footer, .filter-bar, .btn-detail,
+    .btn-import, .btn-filter, .btn-reset, .btn-csv, .btn-danger,
+    .edit-card, .toast-container, .back-link { display: none !important; }
+
+    main { padding: 0; max-width: 100%; }
+
+    .table-wrapper { box-shadow: none; border: none; overflow: visible; }
+
+    .devices-table th { position: static; }
+
+    .detail-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-card { break-inside: avoid; box-shadow: none; }
+
+    details { display: block; }
+    details > summary { display: none; }
+
+    a[href]::after { content: none !important; }
+}

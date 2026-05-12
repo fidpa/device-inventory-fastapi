@@ -1,0 +1,192 @@
+/* Device Inventory — Global styles: variables, reset, layout, navigation
+   Included in: base.html, login.html */
+
+:root {
+    --primary: #1a73e8;
+    --primary-dark: #1557b0;
+    --primary-light: #e8f0fe;
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --surface-alt: #f3f4f6;
+    --border: #dee2e6;
+    --text: #212529;
+    --muted: #6c757d;
+    --danger: #dc3545;
+    --danger-dark: #b02a37;
+    --danger-bg: #f8d7da;
+    --danger-text: #721c24;
+    --warning: #ffc107;
+    --warning-dark: #d97706;
+    --warning-bg: #fff3cd;
+    --warning-text: #856404;
+    --warning-light: #fffbeb;
+    --success: #198754;
+    --success-bg: #d4edda;
+    --success-text: #155724;
+    --info-bg: #cce5ff;
+    --info-text: #004085;
+    --newtral-bg: #e2e3e5;
+    --newtral-text: #383d41;
+    --radius: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+}
+
+/* ─── Skip Link ─────────────────────────────────────────────────────────── */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 0;
+    background: var(--primary);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    z-index: 1000;
+    border-radius: 0 0 var(--radius) 0;
+    font-size: 13px;
+}
+
+.skip-link:focus { top: 0; }
+
+/* ─── Focus Visible ─────────────────────────────────────────────────────── */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ─── Screen Reader Only ────────────────────────────────────────────────── */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ─── Header / Nav ─────────────────────────────────────────────────────── */
+header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+nav {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.nav-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius);
+}
+
+.nav-links a:hover { background: var(--bg); color: var(--text); }
+
+/* ─── Main ──────────────────────────────────────────────────────────────── */
+main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+}
+
+footer a { color: var(--muted); }
+
+/* ─── Page Header ───────────────────────────────────────────────────────── */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.page-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.back-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+/* ─── Last Import ───────────────────────────────────────────────────────── */
+.last-import {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    margin-top: -0.75rem;
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────────────── */
+.muted { color: var(--muted); }
+.monospace { font-family: "SF Mono", "Consolas", monospace; font-size: 12px; }
+
+/* ─── Logout Button ─────────────────────────────────────────────────────── */
+.btn-logout {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius);
+}
+
+.btn-logout:hover { background: var(--bg); color: var(--text); }
+
+/* ─── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    main { padding: 1rem; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .search-input { min-width: unset; }
+}

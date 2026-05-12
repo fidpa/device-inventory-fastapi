@@ -1,0 +1,37 @@
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "W",    # pycodestyle warnings
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "BLE",  # flake8-blind-except
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "N802",   # function name should be lowercase (FastAPI uses CamelCase for some endpoints)
+    "N806",   # function-local UPPER_CASE constants are intentional in PDF builders
+    "B008",   # function-call-in-default-argument (FastAPI Depends() pattern)
+    "B904",   # raise from err — pre-existing pattern; refactor pending
+    "BLE001", # blind except Exception — pre-existing pattern; refactor pending
+]
+
+[lint.per-file-ignores]
+"tests/*" = [
+    "S101",   # assert allowed in tests
+    "S105",   # passwords in tests OK
+    "S106",   # passwords in tests OK
+]
+"src/app.py" = [
+    "E402",   # imports after sys.path manipulation
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"

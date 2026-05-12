@@ -1,0 +1,91 @@
+/* Device Inventory — IT Services page styles
+   Included in: services.html */
+
+/* ── IT-Services ──────────────────────────────────────────────────────────── */
+
+.services-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.form-field span {
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.form-field-check {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 1.4rem;
+}
+
+.form-field-check input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.badge-kategorie {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 0.25rem;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+.btn-cancel {
+    background: var(--surface-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-cancel:hover {
+    background: var(--border);
+}
+
+dialog {
+    margin: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.avv-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-end;
+}
+
+.avv-group .form-field-check {
+    padding-top: 0;
+}
+
+.form-group-sep {
+    grid-column: 1 / -1;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.25rem 0;
+}

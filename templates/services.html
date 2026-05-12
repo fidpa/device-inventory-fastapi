@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Services — Device Inventory{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="/static/pages/services.css">{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Services</h1>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+        <a href="/export/services/pdf" class="btn-filter">PDF-Export</a>
+        <button class="btn-filter" id="btnShowAdd">+ Add</button>
+    </div>
+</div>
+
+<!-- Add-Formular (initial versteckt) -->
+<section class="detail-card edit-card" id="addSection"
+         style="display:none;margin-bottom:1rem;" aria-labelledby="add-title">
+    <h2 id="add-title">Newer Service</h2>
+    <div class="services-form-grid">
+        <label class="form-field form-field-full">
+            <span>Description *</span>
+            <input type="text" id="add-description" class="search-input"
+                   placeholder="e.g. Microsoft 365 Business">
+        </label>
+        <label class="form-field form-field-full">
+            <span>Provider</span>
+            <input type="text" id="add-provider" class="search-input"
+                   placeholder="e.g. Microsoft / Bechtle">
+        </label>
+        <label class="form-field form-field-full">
+            <span>Kategorie</span>
+            <select id="add-kategorie" class="os-select">
+                {% for k in kategorien %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+            </select>
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Kosten (EUR)</span>
+            <input type="number" id="add-kosten" class="search-input"
+                   placeholder="e.g. 12.50" step="0.01" min="0">
+        </label>
+        <label class="form-field">
+            <span>Intervall</span>
+            <select id="add-intervall" class="os-select">
+                {% for i in intervall %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Vertrag Beginn</span>
+            <input type="date" id="add-vertrag-beginn" class="search-input">
+        </label>
+        <label class="form-field">
+            <span>Vertrag Ende</span>
+            <input type="date" id="add-vertrag-ende" class="search-input">
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Notice Period</span>
+            <input type="text" id="add-kuendigungsfrist" class="search-input"
+                   placeholder="e.g. 3 Monthe">
+        </label>
+        <label class="form-field">
+            <span>Kontakt</span>
+            <input type="text" id="add-kontakt" class="search-input"
+                   placeholder="e.g. support@example.com">
+        </label>
+        <hr class="form-group-sep">
+        <div class="form-field-full avv-group">
+            <label class="form-field form-field-check">
+                <input type="checkbox" id="add-avv">
+                <span>AVV present</span>
+            </label>
+            <label class="form-field">
+                <span>AVV-Date</span>
+                <input type="date" id="add-avv-date" class="search-input">
+            </label>
+        </div>
+        <hr class="form-group-sep">
+        <label class="form-field form-field-full">
+            <span>Note</span>
+            <textarea id="add-note" class="search-input note-textarea"
+                      rows="4" placeholder="Interne Notes..."></textarea>
+        </label>
+    </div>
+    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+        <button class="btn-filter" id="btnSaveAdd">Save</button>
+        <button class="btn-filter btn-cancel" id="btnCancelAdd">Abort</button>
+    </div>
+</section>
+
+{% if services %}
+<div class="detail-card" style="padding:0;overflow:hidden;">
+    <table class="inner-table" style="margin:0;width:100%;" aria-label="IT-Services">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Provider</th>
+                <th>Kategorie</th>
+                <th>Kosten</th>
+                <th>Vertrag Ende</th>
+                <th>AVV</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in services %}
+            <tr>
+                <td>
+                    <strong>{{ s.description }}</strong>
+                    {% if s.note %}
+                    <br><small class="muted">
+                        {{ s.note[:80] }}{% if s.note | length > 80 %}…{% endif %}
+                    </small>
+                    {% endif %}
+                </td>
+                <td>{{ s.provider or '—' }}</td>
+                <td><span class="badge badge-kategorie">{{ s.kategorie or '—' }}</span></td>
+                <td>
+                    {% if s.kosten is not none %}
+                    {{ s.kosten | euro }}<br>
+                    <small class="muted">{{ s.kosten_intervall }}</small>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ s.vertrag_ende or '—' }}</td>
+                <td style="text-align:center;">
+                    {% if s.avv_present %}
+                    <span title="AVV present{% if s.avv_date %} since {{ s.avv_date }}{% endif %}"
+                          style="color:#16a34a;font-size:1.1rem;">✓</span>
+                    {% else %}
+                    <span class="muted">✗</span>
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-filter btn-sm"
+                            onclick="openEdit({{ s.id }})">Edit</button>
+                    <button class="btn-danger btn-sm"
+                            onclick="confirmDelete({{ s.id }})">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="detail-card" style="text-align:center;padding:3rem 1rem;">
+    <p class="muted">No IT services collected yet.</p>
+    <button class="btn-filter" id="btnEmptyAdd">Add first service</button>
+</div>
+{% endif %}
+
+<!-- Edit-Dialog -->
+<dialog id="editDialog"
+        style="border:1px solid var(--border);border-radius:var(--radius);
+               padding:1.5rem;max-width:720px;width:92vw;
+               box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <h2 style="margin-top:0;">Service edit</h2>
+    <input type="hidden" id="edit-id">
+    <div class="services-form-grid">
+        <label class="form-field form-field-full">
+            <span>Description *</span>
+            <input type="text" id="edit-description" class="search-input">
+        </label>
+        <label class="form-field form-field-full">
+            <span>Provider</span>
+            <input type="text" id="edit-provider" class="search-input">
+        </label>
+        <label class="form-field form-field-full">
+            <span>Kategorie</span>
+            <select id="edit-kategorie" class="os-select">
+                {% for k in kategorien %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+            </select>
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Kosten (EUR)</span>
+            <input type="number" id="edit-kosten" class="search-input" step="0.01" min="0">
+        </label>
+        <label class="form-field">
+            <span>Intervall</span>
+            <select id="edit-intervall" class="os-select">
+                {% for i in intervall %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Vertrag Beginn</span>
+            <input type="date" id="edit-vertrag-beginn" class="search-input">
+        </label>
+        <label class="form-field">
+            <span>Vertrag Ende</span>
+            <input type="date" id="edit-vertrag-ende" class="search-input">
+        </label>
+        <hr class="form-group-sep">
+        <label class="form-field">
+            <span>Notice Period</span>
+            <input type="text" id="edit-kuendigungsfrist" class="search-input">
+        </label>
+        <label class="form-field">
+            <span>Kontakt</span>
+            <input type="text" id="edit-kontakt" class="search-input">
+        </label>
+        <hr class="form-group-sep">
+        <div class="form-field-full avv-group">
+            <label class="form-field form-field-check">
+                <input type="checkbox" id="edit-avv">
+                <span>AVV present</span>
+            </label>
+            <label class="form-field">
+                <span>AVV-Date</span>
+                <input type="date" id="edit-avv-date" class="search-input">
+            </label>
+        </div>
+        <hr class="form-group-sep">
+        <label class="form-field form-field-full">
+            <span>Note</span>
+            <textarea id="edit-note" class="search-input note-textarea" rows="4"></textarea>
+        </label>
+    </div>
+    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="btn-filter" id="btnSaveEdit">Save</button>
+        <button class="btn-filter btn-cancel" id="btnCancelEdit">Abort</button>
+    </div>
+</dialog>
+
+<script>
+const SERVICES = {{ services | tojson }};
+</script>
+<script src="/static/js/services.js"></script>
+{% endblock %}

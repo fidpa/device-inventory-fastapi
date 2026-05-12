@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Example Organization — Overview and Inventory">
+    <meta name="theme-color" content="#1a73e8">
+    <title>{% block title %}Device Inventory{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a73e8'%3E%3Cpath d='M20 3H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V5a2 2 0 00-2-2zm0 13H4V5h16v11z'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/components.css">
+    <link rel="stylesheet" href="/static/tables.css">
+    <link rel="stylesheet" href="/static/print.css" media="print">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <a href="#content" class="skip-link">Zum Inhalt springen</a>
+
+    <header>
+        <nav aria-label="Hauptnavigation">
+            <a href="/" class="nav-brand">Device Inventory</a>
+            <div class="nav-links">
+                <a href="/">Hardware</a>
+                {# <a href="/dashboard">Dashboard</a> #}
+                <a href="/printers">Printers</a>
+                <a href="/vpn">VPN</a>
+                <a href="/services">Services</a>
+                <a href="/ctr">CTR</a>
+                <a href="/import/log">Log</a>
+                <form method="post" action="/api/import" class="import-form" id="importForm">
+                    <button type="submit" class="btn-import"
+                            aria-label="Devices from Nextcloud import"
+                            title="Newe JSON-Files from Nextcloud import">
+                        ↻ Import
+                    </button>
+                </form>
+                <a href="/logout" class="btn-logout" title="Logout">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main id="content" role="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Example Organization &mdash; Overview</p>
+    </footer>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <script>
+    function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type || 'info');
+        toast.innerHTML = message + '<button class="toast-close" aria-label="Close">&times;</button>';
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('toast-visible'));
+        const dismiss = () => {
+            toast.classList.remove('toast-visible');
+            setTimeout(() => toast.remove(), 300);
+        };
+        toast.querySelector('.toast-close').addEventListr('click', dismiss);
+        setTimeout(dismiss, 4000);
+    }
+
+    document.getElementById('importForm')?.addEventListr('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button');
+        btn.textContent = '⌛ Importiere...';
+        btn.disabled = true;
+        const errors = [];
+        try {
+            const r1 = await fetch('/api/import', {method: 'POST'});
+            const d1 = await r1.json();
+            if (!r1.ok) errors.push('Devices: ' + (d1.message || 'Error'));
+
+            btn.textContent = '⌛ Printers...';
+            const r2 = await fetch('/api/import/printers', {method: 'POST'});
+            const d2 = await r2.json();
+            if (!r2.ok) errors.push('Printers: ' + (d2.message || 'Error'));
+
+            if (errors.length === 0) {
+                btn.textContent = '✓ Fertig';
+                showToast('Import successful completed (Devices + Printers).', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                btn.textContent = '✗ Error';
+                showToast('Import teilweise failed: ' + errors.join(' | '), 'error');
+            }
+        } catch(err) {
+            btn.textContent = '✗ Error';
+            showToast('Import failed: ' + err.message, 'error');
+        } finally {
+            setTimeout(() => { btn.textContent = '↻ Import'; btn.disabled = false; }, 3000);
+        }
+    });
+    </script>
+</body>
+</html>

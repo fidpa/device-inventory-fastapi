@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}CTR Server — Device Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>CTR Server</h1>
+    <div class="header-actions">
+        <a href="/export/ctr/pdf" class="btn-filter">PDF-Export</a>
+        <button class="btn-filter" id="btnShowAddHost">+ Host add</button>
+    </div>
+</div>
+
+<!-- Add-Host-Formular -->
+<section id="addHostSection" class="detail-card" style="display:none; margin-bottom:1.5rem;">
+    <h2>Newer Host</h2>
+    <div class="edit-row">
+        <label for="add-host-hostname">Hostname *</label>
+        <input type="text" id="add-host-hostname" class="search-input" placeholder="e.g. ExampleHost01">
+
+        <label for="add-host-bs">Operating System</label>
+        <input type="text" id="add-host-bs" class="search-input" placeholder="e.g. Windows Server 2022 Std.">
+
+        <label for="add-host-cpu">CPU</label>
+        <input type="text" id="add-host-cpu" class="search-input" placeholder="e.g. 2x Intel Xeon Gold">
+
+        <label for="add-host-storage">Plattenstorage</label>
+        <input type="text" id="add-host-storage" class="search-input" placeholder="e.g. 2x 500GB NVMe (RAID1)">
+
+        <label for="add-host-ram">RAM</label>
+        <input type="text" id="add-host-ram" class="search-input" placeholder="e.g. 256 GB DDR5 ecc">
+
+        <label for="add-host-sn">Manufacturer / SN</label>
+        <input type="text" id="add-host-sn" class="search-input" placeholder="e.g. CTR SN: 110036999">
+
+        <button class="btn-filter" id="btnSaveAddHost">Save</button>
+        <button class="btn-reset" id="btnCancelAddHost">Abort</button>
+    </div>
+</section>
+
+<!-- Host-Karten -->
+{% for host in hosts %}
+<section class="detail-card" style="margin-bottom:1.5rem;" id="host-{{ host.id }}">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.5rem;">
+        <h2 style="margin:0;">{{ host.hostname }}</h2>
+        <button class="btn-filter btn-sm" onclick="openEditHost({{ host.id }})">Edit</button>
+    </div>
+    <dl style="margin-top:0.75rem;">
+        <dt>Operating System</dt><dd>{{ host.operating_system or '—' }}</dd>
+        <dt>CPU</dt><dd>{{ host.cpu or '—' }}</dd>
+        <dt>Plattenstorage</dt><dd>{{ host.storage or '—' }}</dd>
+        <dt>RAM</dt><dd>{{ host.ram or '—' }}</dd>
+        <dt>Manufacturer / SN</dt><dd>{{ host.manufacturer_sn or '—' }}</dd>
+    </dl>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; margin-bottom:0.5rem;">
+        <h3 style="margin:0; font-size:0.95rem; color:var(--text-muted,#666);">
+            Virtual Machinen ({{ host.vms | length }})
+        </h3>
+        <button class="btn-filter btn-sm" onclick="openAddVm({{ host.id }})">+ VM</button>
+    </div>
+
+    {% if host.vms %}
+    <div class="table-wrapper">
+        <table class="inner-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Operating System</th>
+                    <th>vRAM (GB)</th>
+                    <th>vCPUs</th>
+                    <th>Verwendung</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vm in host.vms %}
+                <tr>
+                    <td><strong>{{ vm.name }}</strong></td>
+                    <td>{{ vm.os or '—' }}</td>
+                    <td>{{ vm.vram or '—' }}</td>
+                    <td>{{ vm.vcpus or '—' }}</td>
+                    <td>{{ vm.verwendung or '—' }}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn-filter btn-sm" onclick="openEditVm({{ vm.id }})">Edit</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted" style="font-size:0.875rem;">No VMs collected.</p>
+    {% endif %}
+</section>
+{% else %}
+<p class="muted">No hosts present yet.</p>
+{% endfor %}
+
+<!-- Edit-Host-Dialog -->
+<dialog id="editHostDialog">
+    <h2>Host edit</h2>
+    <input type="hidden" id="edit-host-id">
+    <div class="edit-row">
+        <label for="edit-host-hostname">Hostname *</label>
+        <input type="text" id="edit-host-hostname" class="search-input">
+
+        <label for="edit-host-bs">Operating System</label>
+        <input type="text" id="edit-host-bs" class="search-input">
+
+        <label for="edit-host-cpu">CPU</label>
+        <input type="text" id="edit-host-cpu" class="search-input">
+
+        <label for="edit-host-storage">Plattenstorage</label>
+        <input type="text" id="edit-host-storage" class="search-input">
+
+        <label for="edit-host-ram">RAM</label>
+        <input type="text" id="edit-host-ram" class="search-input">
+
+        <label for="edit-host-sn">Manufacturer / SN</label>
+        <input type="text" id="edit-host-sn" class="search-input">
+
+        <button class="btn-filter" id="btnSaveEditHost">Save</button>
+        <button class="btn-reset" id="btnCancelEditHost">Abort</button>
+        <button class="btn-delete" id="btnDeleteHost">Delete</button>
+    </div>
+</dialog>
+
+<!-- Add-VM-Dialog -->
+<dialog id="addVmDialog">
+    <h2>VM add</h2>
+    <input type="hidden" id="add-vm-host-id">
+    <div class="edit-row">
+        <label for="add-vm-name">Name *</label>
+        <input type="text" id="add-vm-name" class="search-input" placeholder="e.g. NewServer">
+
+        <label for="add-vm-os">Operating System</label>
+        <input type="text" id="add-vm-os" class="search-input" placeholder="e.g. Windows Server 2022 Std">
+
+        <label for="add-vm-vram">vRAM (GB)</label>
+        <input type="text" id="add-vm-vram" class="search-input" placeholder="e.g. 32">
+
+        <label for="add-vm-vcpus">vCPUs</label>
+        <input type="text" id="add-vm-vcpus" class="search-input" placeholder="e.g. 4">
+
+        <label for="add-vm-verwendung">Verwendung</label>
+        <input type="text" id="add-vm-verwendung" class="search-input" placeholder="e.g. Datenbankserver">
+
+        <button class="btn-filter" id="btnSaveAddVm">Save</button>
+        <button class="btn-reset" id="btnCancelAddVm">Abort</button>
+    </div>
+</dialog>
+
+<!-- Edit-VM-Dialog -->
+<dialog id="editVmDialog">
+    <h2>VM edit</h2>
+    <input type="hidden" id="edit-vm-id">
+    <div class="edit-row">
+        <label for="edit-vm-name">Name *</label>
+        <input type="text" id="edit-vm-name" class="search-input">
+
+        <label for="edit-vm-os">Operating System</label>
+        <input type="text" id="edit-vm-os" class="search-input">
+
+        <label for="edit-vm-vram">vRAM (GB)</label>
+        <input type="text" id="edit-vm-vram" class="search-input">
+
+        <label for="edit-vm-vcpus">vCPUs</label>
+        <input type="text" id="edit-vm-vcpus" class="search-input">
+
+        <label for="edit-vm-verwendung">Verwendung</label>
+        <input type="text" id="edit-vm-verwendung" class="search-input">
+
+        <button class="btn-filter" id="btnSaveEditVm">Save</button>
+        <button class="btn-reset" id="btnCancelEditVm">Abort</button>
+        <button class="btn-delete" id="btnDeleteVm">Delete</button>
+    </div>
+</dialog>
+
+<script>
+const CTR_HOSTS = {{ hosts | tojson }};
+</script>
+<script src="/static/js/ctr.js"></script>
+{% endblock %}

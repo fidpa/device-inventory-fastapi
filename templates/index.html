@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Device Inventory{% endblock %}
+
+{% macro device_icon(type) %}
+{% set t = type or 'unknown' %}
+{% if t == 'desktop' %}
+<svg class="device-type-icon" width="16" height="16" title="Desktop-PC" aria-label="Desktop-PC" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+{% elif t == 'notebook' %}
+<svg class="device-type-icon" width="16" height="16" title="Notebook" aria-label="Notebook" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M1 20h22"/></svg>
+{% elif t == 'thin-client' %}
+<svg class="device-type-icon" width="16" height="16" title="Thin-Client" aria-label="Thin-Client" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="1"/><path d="M7 22h10M12 18v4"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+{% elif t == 'printer' %}
+<svg class="device-type-icon" width="16" height="16" title="Printers" aria-label="Printers" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="9" rx="1"/><rect x="6" y="14" width="12" height="7"/><path d="M6 13h.01M18 13h.01"/></svg>
+{% else %}
+<svg class="device-type-icon device-type-unknown" width="16" height="16" title="Type unknown" aria-label="Type unknown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" stroke-dasharray="3 2"/><path d="M8 21h8M12 17v4" stroke-dasharray="3 2"/></svg>
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Hardware</h1>
+    <span class="badge">{{ total }} Device{% if total != 1 %}e{% endif %}</span>
+</div>
+{% if last_import %}
+<p class="last-import">Latest Import: {{ last_import | datetime }}</p>
+{% endif %}
+
+<form method="get" action="/" class="filter-bar" role="search">
+    <input
+        type="search"
+        name="q"
+        id="searchInput"
+        value="{{ q }}"
+        placeholder="Search: Name, User, Model, Serial Number... (/ to the Fokussieren)"
+        class="search-input"
+        aria-label="Search devices"
+    >
+    <select name="os" class="os-select" aria-label="Filter by operating system">
+        <option value="">All operating systems</option>
+        {% for os_name in os_options %}
+        <option value="{{ os_name }}" {% if os_filter == os_name %}selected{% endif %}>
+            {{ os_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <select name="status" class="os-select" aria-label="Filter by status">
+        <option value="">All status</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        <option value="decommissioned" {% if status_filter == 'decommissioned' %}selected{% endif %}>Decommissioned</option>
+    </select>
+    <select name="type" class="os-select" aria-label="Filter by device type">
+        <option value="">All types</option>
+        <option value="desktop" {% if type_filter == 'desktop' %}selected{% endif %}>Desktop-PC</option>
+        <option value="notebook" {% if type_filter == 'notebook' %}selected{% endif %}>Notebook</option>
+        <option value="thin-client" {% if type_filter == 'thin-client' %}selected{% endif %}>Thin-Client</option>
+        <option value="printer" {% if type_filter == 'printer' %}selected{% endif %}>Printers</option>
+        <option value="unknown" {% if type_filter == 'unknown' %}selected{% endif %}>Unknown</option>
+    </select>
+    <button type="submit" class="btn-filter">Filter</button>
+    {% if q or os_filter or status_filter or type_filter %}
+    <a href="/" class="btn-reset">Reset</a>
+    {% endif %}
+    {% set csv_params = [] %}
+    {% if q %}{% set _ = csv_params.append('q=' ~ q) %}{% endif %}
+    {% if os_filter %}{% set _ = csv_params.append('os=' ~ os_filter) %}{% endif %}
+    {% if status_filter %}{% set _ = csv_params.append('status=' ~ status_filter) %}{% endif %}
+    {% if type_filter %}{% set _ = csv_params.append('type=' ~ type_filter) %}{% endif %}
+    <a href="/export/pdf{% if csv_params %}?{{ csv_params | join('&') }}{% endif %}"
+       class="btn-csv" aria-label="Aktuelle Ansicht als PDF export">↓ PDF</a>
+</form>
+
+{% if devices %}
+<div class="table-wrapper">
+    <table class="devices-table" id="devicesTable">
+        <caption class="sr-only">List of collecteden Devices, {{ total }} entries</caption>
+        <thead>
+            <tr>
+                <th class="sortable" data-col="0">User <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="1">Devicesname <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="2">Manufacturer / Model <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="3">Serial Number <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="4">Operating System <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="5">CPU <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="6">RAM <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="7" aria-sort="descending">Collected at <span class="sort-indicator" aria-hidden="true">▼</span></th>
+                <th><span class="sr-only">Aktionen</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in devices %}
+            <tr class="device-row" onclick="window.location='/device/{{ d.id }}'" tabindex="0"
+                onkeydown="if(event.key==='Enter')window.location='/device/{{ d.id }}'">
+                <td class="col-user">{{ d.collected_by or '—' }}</td>
+                <td class="col-name">
+                    <span class="device-name-cell">
+                        {{ device_icon(d.device_type) }}
+                        <span>{{ d.device_name or '—' }}</span>
+                    </span>
+                    {% if d.status and d.status != 'active' %}
+                    <span class="status-badge status-{{ d.status }}">{{ d.status }}</span>
+                    {% endif %}
+                </td>
+                <td class="col-model">
+                    {% if d.device_manufacturer %}
+                        <span class="muted">{{ d.device_manufacturer }}</span><br>
+                    {% endif %}
+                    {{ d.device_model or '—' }}
+                </td>
+                <td class="col-serial monospace">{{ d.device_serial_number or '—' }}</td>
+                <td class="col-os">
+                    {{ d.os_name or '—' }}
+                    {% if d.os_version %}<br><span class="muted">{{ d.os_version }}</span>{% endif %}
+                </td>
+                <td class="col-cpu">{{ d.cpu_description or '—' }}</td>
+                <td class="col-ram">
+                    {% if d.ram_total_gb %}{{ d.ram_total_gb | int }} GB{% else %}—{% endif %}
+                </td>
+                <td class="col-date">
+                    {% if d.collected_at %}{{ d.collected_at[:10] }}{% else %}—{% endif %}
+                </td>
+                <td>
+                    <a href="/device/{{ d.id }}" class="btn-detail"
+                       onclick="event.stopPropagation()"
+                       aria-label="Details to {{ d.device_name or d.file }}">Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+    </svg>
+    {% if q or os_filter or status_filter %}
+        <p>No devices found for the current search.</p>
+        <a href="/" class="btn-reset">Reset Search</a>
+    {% else %}
+        <p>No devices imported yet.</p>
+        <p>Click <strong>↻ Import</strong> to load data from Nextcloud.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+// Keyboard-Shortcut: "/" fokussiert Search, Escape defokussiert
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    document.addEventListr('keydown', function(e) {
+        const day = document.activeElement.dayName;
+        if (e.key === '/' && document.activeElement !== searchInput &&
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(day)) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+            searchInput.blur();
+        }
+    });
+}
+
+// Sortierbare Spalten
+(function() {
+    const table = document.getElementById('devicesTable');
+    if (!table) return;
+
+    let sortCol = 7;
+    let sortAsc = false;
+
+    const headers = table.querySelectorAll('th[data-col]');
+    headers.forEach(th => {
+        th.addEventListr('click', function() {
+            const col = parseInt(this.dataset.col);
+            sortAsc = sortCol === col ? !sortAsc : true;
+            sortCol = col;
+            sortTable(col, sortAsc);
+            updateSortIndicators();
+        });
+    });
+
+    function getCellText(row, col) {
+        const cell = row.cells[col];
+        return cell ? cell.innerText.trim().toLowerCase() : '';
+    }
+
+    function sortTable(col, asc) {
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        rows.sort((a, b) => {
+            const av = getCellText(a, col);
+            const bv = getCellText(b, col);
+            if (col === 6) {
+                return asc ? (parseFloat(av) || 0) - (parseFloat(bv) || 0)
+                           : (parseFloat(bv) || 0) - (parseFloat(av) || 0);
+            }
+            return asc ? av.localeCompare(bv, 'de') : bv.localeCompare(av, 'de');
+        });
+        tbody.append(...rows);
+    }
+
+    function updateSortIndicators() {
+        headers.forEach(th => {
+            const col = parseInt(th.dataset.col);
+            const indicator = th.querySelector('.sort-indicator');
+            if (!indicator) return;
+            if (col === sortCol) {
+                indicator.textContent = sortAsc ? '▲' : '▼';
+                th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+            } else {
+                indicator.textContent = '';
+                th.removeAttribute('aria-sort');
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

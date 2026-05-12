@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.device_name or device.file }} — Device Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="/" class="back-link">← Back to List</a>
+    <h1>{{ device.device_name or 'Unknown Device' }}</h1>
+    <span class="muted">{{ device.file }}</span>
+</div>
+
+{% set d = device.json_parsed %}
+
+<!-- Status & Assignment -->
+<section class="detail-card edit-card" style="grid-column: 1 / -1;" aria-labelledby="sec-status">
+    <h2 id="sec-status">Status &amp; Assignment</h2>
+    <div class="edit-row">
+        <label for="statusSelect">Status</label>
+        <select id="statusSelect" class="os-select">
+            {% for s in valid_status %}
+            <option value="{{ s }}" {% if device.status == s %}selected{% endif %}>
+                {{ s | capitalize }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <label for="typeSelect">Device Type</label>
+        <select id="typeSelect" class="os-select">
+            {% for t in valid_types %}
+            <option value="{{ t }}" {% if (device.device_type or 'unknown') == t %}selected{% endif %}>
+                {% if t == 'desktop' %}Desktop-PC
+                {% elif t == 'notebook' %}Notebook
+                {% elif t == 'thin-client' %}Thin-Client
+                {% elif t == 'printer' %}Printers
+                {% else %}Unknown{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+
+        <label for="issued_to">Issued to</label>
+        <input type="text" id="issued_to" class="search-input"
+               value="{{ device.issued_to or '' }}"
+               placeholder="Name des recipients">
+
+        <label for="output_since">Since</label>
+        <input type="date" id="output_since" class="search-input"
+               value="{{ device.output_since or '' }}">
+
+        <button class="btn-filter" id="btnSaveStatus">Save</button>
+    </div>
+</section>
+
+<!-- Inventory -->
+<section class="detail-card edit-card" style="grid-column: 1 / -1;" aria-labelledby="sec-inventory">
+    <h2 id="sec-inventory">Inventory</h2>
+    <div class="edit-row">
+        <label for="inventory_number">Inventory Number</label>
+        <input type="text" id="inventory_number" class="search-input"
+               value="{{ device.inventory_number or '' }}"
+               placeholder="e.g. INV-2024-0042">
+
+        <label for="location">Location / Room</label>
+        <input type="text" id="location" class="search-input"
+               value="{{ device.location or '' }}"
+               placeholder="e.g. Office 1st floor links">
+
+        <label for="acquisitionsdate">Acquisitionsdate</label>
+        <input type="date" id="acquisitionsdate" class="search-input"
+               value="{{ device.acquisitionsdate or '' }}">
+    </div>
+    <div class="edit-row" style="margin-top: 0.5rem;">
+        <label for="acquisitionsprice">Acquisitionsprice (EUR net)</label>
+        <input type="number" id="acquisitionsprice" class="search-input"
+               value="{{ device.acquisitionsprice or '' }}"
+               placeholder="e.g. 849.00" step="0.01" min="0">
+
+        <button class="btn-filter" id="btnSaveInventory">Save</button>
+    </div>
+    {% if device.decommissioned_am %}
+    <p class="muted" style="margin-top: 0.5rem;">
+        Decommissioned am: <strong>{{ device.decommissioned_am }}</strong>
+    </p>
+    {% endif %}
+</section>
+
+<!-- VPN -->
+<section class="detail-card edit-card" style="grid-column: 1 / -1;" aria-labelledby="sec-vpn">
+    <h2 id="sec-vpn">VPN</h2>
+    <div class="edit-row">
+        <label for="vpnInput">VPN-Number / -Identifier</label>
+        <input type="text" id="vpnInput" class="search-input"
+               value="{{ device.vpn or '' }}"
+               placeholder="e.g. 42">
+        <button class="btn-filter" id="btnSaveVpn">Save</button>
+    </div>
+</section>
+
+<!-- Note -->
+<section class="detail-card edit-card" style="grid-column: 1 / -1;" aria-labelledby="sec-note">
+    <h2 id="sec-note">Note</h2>
+    <div class="edit-row edit-row-note">
+        <textarea id="noteTextarea" rows="3" class="search-input note-textarea"
+                  placeholder="Interne Notes about Device...">{{ device.note or '' }}</textarea>
+        <button class="btn-filter" id="btnSaveNote">Save</button>
+    </div>
+</section>
+
+<!-- Accessories -->
+<section class="detail-card edit-card" style="grid-column: 1 / -1;" aria-labelledby="sec-accessories">
+    <h2 id="sec-accessories">Accessories</h2>
+    <div class="accessory-grid">
+        {% for key, label in accessory_types %}
+        {% set val = accessory_data.get(key) %}
+        <div class="accessory-row" data-key="{{ key }}">
+            <label class="accessory-check-label">
+                <input type="checkbox" class="accessory-check"
+                       {% if val %}checked{% endif %}
+                       aria-label="{{ label }} present">
+                <span class="accessory-label">{{ label }}</span>
+            </label>
+            <input type="text" class="search-input accessory-text"
+                   value="{{ val if val is string else '' }}"
+                   placeholder="Description / Serial Number (optional)"
+                   aria-label="{{ label }} Description">
+        </div>
+        {% endfor %}
+        <!-- Others: only Freetext -->
+        <div class="accessory-row accessory-row-others" data-key="others">
+            <span class="accessory-label-others">Others</span>
+            <input type="text" class="search-input accessory-text"
+                   value="{{ accessory_data.get('others', '') }}"
+                   placeholder="e.g. 2x HDMI-Kabel, Displayport-Adapter"
+                   aria-label="Others Accessories">
+        </div>
+    </div>
+    <div style="margin-top: 0.75rem;">
+        <button class="btn-filter" id="btnSaveAccessories">Save</button>
+    </div>
+</section>
+
+<div class="detail-grid">
+
+    <!-- Device -->
+    <section class="detail-card" aria-labelledby="sec-device">
+        <h2 id="sec-device">Device</h2>
+        <dl>
+            <dt>Manufacturer</dt><dd>{{ d.device.manufacturer or '—' }}</dd>
+            <dt>Model</dt><dd>{{ d.device.model or '—' }}</dd>
+            <dt>Serial Number</dt><dd class="monospace">{{ d.device.serial_number or '—' }}</dd>
+            <dt>system_type</dt><dd>{{ d.device.system_type or '—' }}</dd>
+        </dl>
+    </section>
+
+    <!-- Collection -->
+    <section class="detail-card" aria-labelledby="sec-collection">
+        <h2 id="sec-collection">Collection</h2>
+        <dl>
+            <dt>Collected by</dt>
+            <dd>
+                <div style="display:flex; gap:0.4rem; align-items:center;">
+                    <input type="text" id="collected_by" class="search-input"
+                           value="{{ device.collected_by or '' }}"
+                           placeholder="Name eintragen"
+                           style="flex:1; min-width:0;">
+                    <button class="btn-filter" id="btnSaveCollectedVon" style="white-space:nowrap;">Save</button>
+                </div>
+            </dd>
+            <dt>Collected at</dt><dd>{{ device.collected_at or '—' }}</dd>
+            <dt>Imported at</dt><dd>{{ device.imported_at or '—' }}</dd>
+            <dt>Schema</dt><dd>{{ d.schema_version or '—' }}</dd>
+        </dl>
+    </section>
+
+    <!-- Operating System -->
+    <section class="detail-card" aria-labelledby="sec-bs">
+        <h2 id="sec-bs">Operating System</h2>
+        {% if d.operating_system %}
+        {% set bs = d.operating_system %}
+        <dl>
+            <dt>Name</dt><dd>{{ bs.name or '—' }}</dd>
+            <dt>Version</dt><dd>{{ bs.version or '—' }}</dd>
+            <dt>Build</dt><dd class="monospace">{{ bs.build or '—' }}</dd>
+            <dt>Architektur</dt><dd>{{ bs.architektur or '—' }}</dd>
+            <dt>Installiert am</dt><dd>{{ bs.installiert_am or '—' }}</dd>
+            <dt>Last Reboot</dt><dd>{{ bs.last_restart or '—' }}</dd>
+        </dl>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- CPU -->
+    <section class="detail-card" aria-labelledby="sec-cpu">
+        <h2 id="sec-cpu">CPU</h2>
+        {% if d.cpu %}
+        {% set cpu = d.cpu %}
+        <dl>
+            <dt>Description</dt><dd>{{ cpu.description or '—' }}</dd>
+            <dt>Cores</dt><dd>{{ cpu.cores or '—' }}</dd>
+            <dt>Threads</dt><dd>{{ cpu.threads or '—' }}</dd>
+            <dt>Max. Takt</dt><dd>{% if cpu.max_takt_mhz %}{{ cpu.max_takt_mhz }} MHz{% else %}—{% endif %}</dd>
+        </dl>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- RAM -->
+    <section class="detail-card" aria-labelledby="sec-ram">
+        <h2 id="sec-ram">RAM</h2>
+        {% if d.ram %}
+        <p><strong>Total: {{ d.ram.total_gb }} GB</strong></p>
+        {% if d.ram.module %}
+        <table class="inner-table" aria-label="RAM-Module">
+            <thead>
+                <tr><th>Capacity</th><th>Type</th><th>MHz</th><th>Manufacturer</th><th>Slot</th></tr>
+            </thead>
+            <tbody>
+                {% for m in d.ram.module %}
+                <tr>
+                    <td>{{ m.kapazitaet_gb }} GB</td>
+                    <td>{{ m.type or '—' }}</td>
+                    <td>{{ m.speed_mhz or '—' }}</td>
+                    <td>{{ m.manufacturer or '—' }}</td>
+                    <td class="monospace">{{ m.slot or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- Laufwerke -->
+    <section class="detail-card" aria-labelledby="sec-laufwerke">
+        <h2 id="sec-laufwerke">Laufwerke (physisch)</h2>
+        {% if d.laufwerke %}
+        <table class="inner-table" aria-label="Physische Laufwerke">
+            <thead>
+                <tr><th>Model</th><th>Size</th><th>Schnittstelle</th><th>Type</th></tr>
+            </thead>
+            <tbody>
+                {% for l in d.laufwerke %}
+                <tr>
+                    <td>{{ l.model or '—' }}</td>
+                    <td>{{ l.groesse_gb }} GB</td>
+                    <td>{{ l.schnittstelle or '—' }}</td>
+                    <td>{{ l.medientype or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- Partitionen -->
+    <section class="detail-card" aria-labelledby="sec-partitionen">
+        <h2 id="sec-partitionen">Partitionen</h2>
+        {% if d.partitionen %}
+        <table class="inner-table" aria-label="Laufwerkspartitionen">
+            <thead>
+                <tr><th>Laufwerk</th><th>Filesystem</th><th>Size</th><th>Used</th><th>%</th></tr>
+            </thead>
+            <tbody>
+                {% for p in d.partitionen %}
+                <tr>
+                    <td class="monospace">{{ p.laufwerk }}</td>
+                    <td>{{ p.filesystem or '—' }}</td>
+                    <td>{{ p.groesse_gb }} GB</td>
+                    <td>{{ p.used_gb }} GB</td>
+                    <td>
+                        <div class="progress-bar" role="progressbar"
+                             aria-valuenow="{{ p.used_prozent }}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-fill {% if p.used_prozent > 85 %}critical{% elif p.used_prozent > 70 %}warning{% endif %}"
+                                 style="width: {{ p.used_prozent }}%"></div>
+                        </div>
+                        {{ p.used_prozent }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- GPU -->
+    <section class="detail-card" aria-labelledby="sec-gpu">
+        <h2 id="sec-gpu">GPU</h2>
+        {% if d.gpu %}
+        <table class="inner-table" aria-label="Grafikkarten">
+            <thead>
+                <tr><th>Name</th><th>VRAM</th><th>Treiber</th><th>Resolution</th></tr>
+            </thead>
+            <tbody>
+                {% for g in d.gpu %}
+                <tr>
+                    <td>{{ g.name or '—' }}</td>
+                    <td>{{ g.vram_gb }} GB</td>
+                    <td class="monospace">{{ g.treiber_version or '—' }}</td>
+                    <td>{{ g.aufloesung or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- Monitore -->
+    <section class="detail-card" aria-labelledby="sec-monitore">
+        <h2 id="sec-monitore">Monitore</h2>
+        {% if d.monitore %}
+        <table class="inner-table" aria-label="Angeschlossene Monitore">
+            <thead>
+                <tr><th>Manufacturer</th><th>Description</th><th>Serial Number</th></tr>
+            </thead>
+            <tbody>
+                {% for m in d.monitore %}
+                <tr>
+                    <td>{{ m.manufacturer or '—' }}</td>
+                    <td>{{ m.description or '—' }}</td>
+                    <td class="monospace">{{ m.serial_number or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- Network -->
+    <section class="detail-card" aria-labelledby="sec-network">
+        <h2 id="sec-network">Network</h2>
+        {% if d.network %}
+        <table class="inner-table" aria-label="Networkadapter">
+            <thead>
+                <tr><th>Adapter</th><th>MAC</th><th>IP</th><th>DHCP</th></tr>
+            </thead>
+            <tbody>
+                {% for n in d.network %}
+                <tr>
+                    <td>{{ n.adapter or '—' }}</td>
+                    <td class="monospace">{{ n.mac or '—' }}</td>
+                    <td class="monospace">{{ n.ip or '—' }}</td>
+                    <td>{{ 'Ja' if n.dhcp else 'Nein' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+</div>
+
+<!-- Software (collapsible, since the list is large) -->
+<section class="detail-card software-card" aria-labelledby="sec-software">
+    <details>
+        <summary>
+            <h2 id="sec-software">Software
+            {% if d.software %}<span class="badge">{{ d.software | length }}</span>{% endif %}
+            </h2>
+        </summary>
+        {% if d.software %}
+        <div class="software-search-wrapper">
+            <input type="search" id="softwareSearch" placeholder="Software suchen..."
+                   class="search-input" aria-label="Installierte Software suchen">
+            <span class="software-count" id="softwareCount" aria-live="polite"></span>
+        </div>
+        <table class="inner-table" id="softwareTable" aria-label="Installierte Software">
+            <thead>
+                <tr><th>Name</th><th>Version</th><th>Installiert am</th></tr>
+            </thead>
+            <tbody>
+                {% for s in d.software %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td class="monospace">{{ s.version or '—' }}</td>
+                    <td>{{ s.installiert_am or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No software data</p>
+        {% endif %}
+    </details>
+</section>
+
+<!-- Delete -->
+<div style="margin-top: 1.5rem; text-align: right;">
+    <button class="btn-danger" id="btnDelete">Device delete</button>
+</div>
+
+<script>
+const DEVICE_ID = {{ device.id }};
+</script>
+<script src="/static/js/device.js"></script>
+{% endblock %}

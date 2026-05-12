@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Printers-Scan {{ scan.hostname or scan.id }} — Device Inventory{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="/static/pages/printers.css">{% endblock %}
+
+{% macro toner_bar(t) %}
+{% if t.max_kapazitaet and t.max_kapazitaet > 0 and t.fuellstand is not none %}
+{% set pct = [(t.fuellstand / t.max_kapazitaet * 100) | int, 100] | min %}
+{% set b = (t.description or '') | lower %}
+{% if 'cyan' in b %}{% set color = 'toner-cyan' %}
+{% elif 'magenta' in b %}{% set color = 'toner-magenta' %}
+{% elif 'yellow' in b or 'gelb' in b %}{% set color = 'toner-yellow' %}
+{% else %}{% set color = 'toner-black' %}
+{% endif %}
+<div class="toner-bar-row">
+    <span class="toner-label {{ color }}">{{ t.description or 'Toner' }}</span>
+    <div class="progress-bar" role="progressbar"
+         aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"
+         style="width: 80px;">
+        <div class="progress-fill toner-fill {{ color }}
+            {% if pct < 10 %}critical{% elif pct < 25 %}warning{% endif %}"
+             style="width: {{ pct }}%"></div>
+    </div>
+    <span class="toner-pct {% if pct < 10 %}toner-critical{% elif pct < 25 %}toner-warning{% endif %}">{{ pct }}%</span>
+    {% if t.fuellstand is not none and t.max_kapazitaet %}
+    <span class="muted" style="font-size:11px">{{ t.fuellstand }}/{{ t.max_kapazitaet }}</span>
+    {% endif %}
+</div>
+{% else %}
+<span class="muted">—</span>
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+    <a href="/printers" class="back-link">← Back to Printer List</a>
+    <h1>Printers-Scan: {{ scan.hostname or '?' }}</h1>
+    <span class="muted">{{ scan.collected_at or scan.imported_at }}</span>
+</div>
+
+<!-- Scan-Info -->
+<section class="detail-card" style="margin-bottom: 1rem;" aria-labelledby="sec-scan-info">
+    <h2 id="sec-scan-info">Scan-Information</h2>
+    <dl>
+        <dt>Hostname</dt><dd>{{ scan.hostname or '—' }}</dd>
+        <dt>Collected at</dt><dd>{{ scan.collected_at | datetime if scan.collected_at else '—' }}</dd>
+        <dt>Imported at</dt><dd>{{ scan.imported_at | datetime if scan.imported_at else '—' }}</dd>
+        <dt>Printers total</dt><dd>{{ scan.printer_count or (printer | length) }}</dd>
+        <dt>File</dt><dd class="monospace">{{ scan.file }}</dd>
+    </dl>
+</section>
+
+{% if not printer %}
+<div class="empty-state">
+    <p>No network printers found in this scan.</p>
+</div>
+{% else %}
+
+{% for d in printer %}
+{% set snmp = d.snmp %}
+<section class="detail-card" style="margin-bottom: 1rem;" aria-labelledby="sec-printer-{{ loop.index }}">
+    <h2 id="sec-printer-{{ loop.index }}" style="display:flex; align-items:center; gap:0.5rem;">
+        <svg width="16" height="16" style="color:var(--primary);flex-shrink:0"
+             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+            <path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="9" rx="1"/>
+            <rect x="6" y="14" width="12" height="7"/>
+        </svg>
+        {{ d.name or 'Printers ' ~ loop.index }}
+        <span class="status-badge printer-status-{{ (d.status or 'unknown') | replace(' ', '-') }}">{{ d.status or 'unknown' }}</span>
+        {% if d.color %}<span class="printer-cap-badge" title="Farbdruck">Color</span>{% endif %}
+        {% if d.duplex %}<span class="printer-cap-badge printer-cap-duplex" title="Duplex">Duplex</span>{% endif %}
+    </h2>
+
+    <div class="detail-grid" style="margin-top: 0.75rem;">
+
+        <!-- Basis-Info -->
+        <div>
+            <dl>
+                <dt>IP-Address</dt><dd class="monospace">{{ d.ip_address or '—' }}</dd>
+                <dt>Port</dt><dd>{{ d.port_number or '—' }}</dd>
+                <dt>Port-Name</dt><dd class="monospace">{{ d.port_name or '—' }}</dd>
+                <dt>Treiber</dt><dd>{{ d.treiber or '—' }}</dd>
+                <dt>Location</dt><dd>{{ d.location or '—' }}</dd>
+                <dt>Kommentar</dt><dd>{{ d.kommentar or '—' }}</dd>
+                {% if d.share_name %}
+                <dt>Freegabe</dt><dd>{{ d.share_name }}</dd>
+                {% endif %}
+                <dt>SNMP activeiert</dt><dd>{{ 'Ja' if d.snmp_activeiert else 'Nein' }}</dd>
+            </dl>
+        </div>
+
+        <!-- SNMP-Daten -->
+        <div>
+            {% if snmp %}
+            <dl>
+                {% if snmp.manufacturer %}
+                <dt>Manufacturer</dt><dd>{{ snmp.manufacturer }}</dd>
+                {% endif %}
+                <dt>Model</dt><dd>{{ snmp.model or '—' }}</dd>
+                <dt>Serial Number</dt><dd class="monospace">{{ snmp.serial_number or '—' }}</dd>
+                <dt>Pages total</dt>
+                <dd>
+                    {% if snmp.pages_total is not none %}
+                    {{ "{:,}".format(snmp.pages_total).replace(",", ".") }}
+                    {% else %}—{% endif %}
+                </dd>
+                {% if snmp.pages_color is not none %}
+                <dt>Pages Color</dt>
+                <dd>{{ "{:,}".format(snmp.pages_color).replace(",", ".") }}</dd>
+                {% endif %}
+            </dl>
+            {% if snmp.toner %}
+            <div style="margin-top: 0.75rem;">
+                <div style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Toner</div>
+                {% for t in snmp.toner %}
+                {{ toner_bar(t) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% else %}
+            <p class="muted" style="margin-top:0.25rem;">SNMP not available</p>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+{% endfor %}
+
+{% endif %}
+{% endblock %}

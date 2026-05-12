@@ -1,0 +1,10 @@
+[Unit]
+Description=Device Inventory — Daily printer import (06:00)
+Requires=device-inventory-import-printers.service
+
+[Timer]
+OnCalendar=*-*-* 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
