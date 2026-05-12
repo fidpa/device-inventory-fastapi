@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Import-Verlauf — Device Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Import-Verlauf</h1>
+    <span class="badge">{{ entries | length }} entries</span>
+</div>
+
+{% if entries %}
+<div class="table-wrapper">
+    <table class="devices-table">
+        <caption class="sr-only">Recent Import Runs</caption>
+        <thead>
+            <tr>
+                <th>Started am</th>
+                <th>Dauer</th>
+                <th>Newe Devices</th>
+                <th>Status</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td class="col-date monospace">{{ e.started_am | datetime }}</td>
+                <td>{{ e.started_am | duration(e.completed_am) }}</td>
+                <td>
+                    {% if e.new_devices %}
+                    <strong>{{ e.new_devices }}</strong>
+                    {% else %}
+                    0
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not e.completed_am %}
+                    <span class="status-badge status-inactive">Running</span>
+                    {% elif e.error %}
+                    <span class="status-badge status-decommissioned">Error</span>
+                    {% else %}
+                    <span class="status-badge status-active">OK</span>
+                    {% endif %}
+                </td>
+                <td class="muted" style="font-size: 12px; max-width: 400px; word-break: break-word;">
+                    {{ e.error or '—' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M12 2v10M12 18v4M4.93 4.93l7.07 7.07M19.07 4.93l-7.07 7.07"/>
+    </svg>
+    <p>No import runs recorded yet.</p>
+    <p>Starte einen Import about den <strong>↻ Import</strong>-Button.</p>
+</div>
+{% endif %}
+{% endblock %}

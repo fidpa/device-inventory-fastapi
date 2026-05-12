@@ -1,0 +1,10 @@
+[Unit]
+Description=Device Inventory — Automatic Nextcloud import (three times daily)
+Requires=device-inventory-import.service
+
+[Timer]
+OnCalendar=*-*-* 06..18:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }} — Device Inventory{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-code">{{ status_code }}</div>
+    <h1 class="error-message">{{ message }}</h1>
+    <a href="/" class="btn-filter">Zur Home Page</a>
+</div>
+{% endblock %}

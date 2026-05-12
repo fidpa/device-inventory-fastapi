@@ -1,0 +1,104 @@
+/* Device Inventory — Table styles: device list, inner tables, column classes
+   Included in: base.html */
+
+/* ─── Devices Table ─────────────────────────────────────────────────────── */
+.table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+.devices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.devices-table th {
+    background: var(--bg);
+    border-bottom: 2px solid var(--border);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.devices-table th.sortable { cursor: pointer; user-select: none; }
+.devices-table th.sortable:hover { background: #edf1f7; }
+
+.sort-indicator {
+    font-size: 10px;
+    color: var(--primary);
+    margin-left: 2px;
+}
+
+.devices-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+.devices-table tbody tr:last-child td { border-bottom: none; }
+.devices-table tbody tr:hover { background: #f0f4ff; }
+
+.device-row { cursor: pointer; }
+
+.col-user { font-weight: 600; white-space: nowrap; }
+.col-serial { font-size: 12px; }
+.col-cpu { max-width: 220px; }
+.col-date { white-space: nowrap; color: var(--muted); }
+
+/* ─── Device Type-Icons ───────────────────────────────────────────────────── */
+.device-name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.device-type-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--primary);
+    vertical-align: middle;
+}
+
+.device-type-unknown {
+    color: var(--muted);
+    opacity: 0.6;
+}
+
+/* ─── Inner Tables (Detail) ─────────────────────────────────────────────── */
+.inner-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 0.5rem;
+}
+
+.inner-table th {
+    border-bottom: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 1;
+}
+
+.inner-table td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+}
+
+.inner-table tbody tr:last-child td { border-bottom: none; }

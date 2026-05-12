@@ -1,0 +1,68 @@
+/* Device Inventory — Printer-specific styles
+   Included in: printers.html, printer_detail.html */
+
+/* ─── Toner-Bars ────────────────────────────────────────────────────────── */
+.toner-bars { display: flex; flex-direction: column; gap: 3px; min-width: 80px; }
+
+.toner-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.toner-pct {
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 28px;
+    text-align: right;
+}
+
+.toner-pct.toner-warning { color: var(--warning-text); font-weight: 600; }
+.toner-pct.toner-critical { color: var(--danger); font-weight: 600; }
+
+.toner-label {
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 70px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.toner-fill { background: var(--muted); }
+.toner-fill.toner-black   { background: #333; }
+.toner-fill.toner-cyan    { background: #0891b2; }
+.toner-fill.toner-magenta { background: #be185d; }
+.toner-fill.toner-yellow  { background: #ca8a04; }
+
+.toner-label.toner-black   { color: #333; }
+.toner-label.toner-cyan    { color: #0891b2; }
+.toner-label.toner-magenta { color: #be185d; }
+.toner-label.toner-yellow  { color: #ca8a04; }
+
+/* ─── Printers-Status-Badges ─────────────────────────────────────────────── */
+.printer-status-online     { background: var(--success-bg); color: var(--success-text); }
+.printer-status-offline    { background: var(--danger-bg); color: var(--danger-text); }
+.printer-status-unknown  { background: var(--newtral-bg); color: var(--newtral-text); }
+.printer-status-wird-gedruckt { background: var(--info-bg); color: var(--info-text); }
+.printer-status-paper_jam { background: var(--warning-bg); color: var(--warning-text); }
+
+/* ─── Printers-Capability-Badges ─────────────────────────────────────────── */
+.printer-cap-badge {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--info-bg);
+    color: var(--info-text);
+    vertical-align: middle;
+    margin-left: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.printer-cap-duplex {
+    background: var(--success-bg);
+    color: var(--success-text);
+}

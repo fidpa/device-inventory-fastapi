@@ -1,0 +1,13 @@
+[Unit]
+Description=Device Inventory — Printer import from Nextcloud (Oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=device-inventory
+WorkingDirectory=/opt/device-inventory
+ExecStart=/opt/device-inventory/venv/bin/python3 /opt/device-inventory/scripts/import_printers.py
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal

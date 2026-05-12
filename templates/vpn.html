@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}VPN-Overview — Device Inventory{% endblock %}
+
+{% block content %}
+<style>
+    .vpn-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    .vpn-cell {
+        height: 90px;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4rem;
+        text-align: center;
+        overflow: hidden;
+    }
+    .vpn-cell.assigned {
+        background: var(--primary);
+        color: white;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .vpn-cell.assigned:hover {
+        background: var(--primary-dark, #1557b0);
+        text-decoration: none;
+    }
+    .vpn-cell.free {
+        background: var(--border);
+        color: var(--muted);
+    }
+    .vpn-nr {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .vpn-name {
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+        text-align: center;
+        margin-top: 0.2rem;
+    }
+    .vpn-user {
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+        text-align: center;
+        opacity: 0.85;
+    }
+    @media (max-width: 768px) {
+        .vpn-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    @media (max-width: 400px) {
+        .vpn-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1>VPN-Overview</h1>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card" style="--card-accent: var(--primary);">
+        <div class="stat-value" style="color: var(--primary);">{{ count_assigned }}</div>
+        <div class="stat-label">Assigned</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--success, #2d9648);">{{ count_free }}</div>
+        <div class="stat-label">Free</div>
+    </div>
+</div>
+
+<div class="vpn-grid">
+    {% for nr in vpn_range %}
+        {% if nr in assigned %}
+            {% set d = assigned[nr] %}
+            <a class="vpn-cell assigned" href="/device/{{ d.id }}" title="{{ d.device_name }}{% if d.issued_to %} — {{ d.issued_to }}{% endif %}">
+                <span class="vpn-nr">{{ nr }}</span>
+                <span class="vpn-name">{{ d.device_name }}</span>
+                {% if d.issued_to %}
+                    <span class="vpn-user">{{ d.issued_to }}</span>
+                {% endif %}
+            </a>
+        {% else %}
+            <div class="vpn-cell free" title="VPN {{ nr }} — free">
+                <span class="vpn-nr">{{ nr }}</span>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+{% if other %}
+<h2>Other VPN-entries</h2>
+<p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;">Non-numeric or out of range 1–64</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Device</th>
+            <th>User</th>
+            <th>VPN Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in other %}
+        <tr>
+            <td><a href="/device/{{ d.id }}">{{ d.device_name }}</a></td>
+            <td>{{ d.issued_to or '—' }}</td>
+            <td><code>{{ d.vpn }}</code></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

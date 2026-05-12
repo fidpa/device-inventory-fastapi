@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Printers — Device Inventory{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="/static/pages/printers.css">{% endblock %}
+
+{% macro toner_color_class(description) %}
+{% set b = (description or '') | lower %}
+{% if 'cyan' in b %}toner-cyan
+{% elif 'magenta' in b %}toner-magenta
+{% elif 'yellow' in b or 'gelb' in b %}toner-yellow
+{% else %}toner-black
+{% endif %}
+{% endmacro %}
+
+{% macro toner_bars(snmp) %}
+{% if snmp and snmp.toner %}
+<div class="toner-bars">
+    {% for t in snmp.toner %}
+    {% if t.max_kapazitaet and t.max_kapazitaet > 0 and t.fuellstand is not none %}
+    {% set pct = [(t.fuellstand / t.max_kapazitaet * 100) | int, 100] | min %}
+    {% set color = toner_color_class(t.description) | trim %}
+    <div class="toner-bar-row" title="{{ t.description or 'Toner' }}: {{ pct }}%">
+        <div class="progress-bar" role="progressbar"
+             aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-fill toner-fill {{ color }}
+                {% if pct < 10 %}critical{% elif pct < 25 %}warning{% endif %}"
+                 style="width: {{ pct }}%"></div>
+        </div>
+        <span class="toner-pct {% if pct < 10 %}toner-critical{% elif pct < 25 %}toner-warning{% endif %}">{{ pct }}%</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% else %}
+<span class="muted">—</span>
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Printers</h1>
+    {% if scan %}
+    <span class="badge">{{ printer | length }} Printers</span>
+    {% endif %}
+</div>
+
+{% if scan %}
+<p class="last-import">
+    Latest Scan: {{ scan.collected_at | datetime }}
+    by {{ scan.hostname or '?' }}
+    &mdash; <a href="/printer/{{ scan.id }}">Scan-Details</a>
+    &mdash; <a href="/export/printers/csv{% if q or status_filter or location_filter %}?{% set params = [] %}{% if q %}{% set _ = params.append('q=' ~ q) %}{% endif %}{% if status_filter %}{% set _ = params.append('status=' ~ status_filter) %}{% endif %}{% if location_filter %}{% set _ = params.append('location=' ~ location_filter) %}{% endif %}{{ params | join('&') }}{% endif %}" class="btn-csv" style="font-size:12px; padding: 0.2rem 0.5rem;">↓ CSV</a>
+</p>
+{% if alle_scans | length > 1 %}
+<p class="last-import" style="margin-top:0.25rem">
+    <strong>Scanner-Quellen:</strong>
+    {% for s in alle_scans %}
+    <span style="display:inline-flex;align-items:center;gap:0.3rem;margin-right:0.75rem">
+        {{ s.hostname or '?' }}
+        <button class="btn-delete-scan" data-id="{{ s.id }}" data-hostname="{{ s.hostname or '?' }}"
+                title="entry '{{ s.hostname }}' delete"
+                style="background:none;border:1px solid var(--danger,#c0392b);color:var(--danger,#c0392b);border-radius:3px;padding:0 0.3rem;cursor:pointer;font-size:11px;line-height:1.4">✕</button>
+    </span>
+    {% endfor %}
+</p>
+{% endif %}
+{% endif %}
+
+<form method="get" action="/printers" class="filter-bar" role="search">
+    <input
+        type="search"
+        name="q"
+        id="searchInput"
+        value="{{ q }}"
+        placeholder="Search: Name, IP, Model, Location... (/ to the Fokussieren)"
+        class="search-input"
+        aria-label="Search printers"
+    >
+    <select name="status" class="os-select" aria-label="Filter by status">
+        <option value="">All status</option>
+        <option value="online" {% if status_filter == 'online' %}selected{% endif %}>Online</option>
+        <option value="offline" {% if status_filter == 'offline' %}selected{% endif %}>Offline</option>
+        <option value="unknown" {% if status_filter == 'unknown' %}selected{% endif %}>Unknown</option>
+    </select>
+    {% if locatione %}
+    <select name="location" class="os-select" aria-label="Filter by location">
+        <option value="">All locations</option>
+        {% for s in locatione %}
+        <option value="{{ s }}" {% if location_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+    <button type="submit" class="btn-filter">Filter</button>
+    {% if q or status_filter or location_filter %}
+    <a href="/printers" class="btn-reset">Reset</a>
+    {% endif %}
+</form>
+
+{% if not scan %}
+<div class="empty-state">
+    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="9" rx="1"/>
+        <rect x="6" y="14" width="12" height="7"/>
+    </svg>
+    <p>No printer scans imported yet.</p>
+    <p>Click <strong>↻ Printer Import</strong> to load data from Nextcloud.</p>
+</div>
+{% elif printer %}
+<div class="table-wrapper">
+    <table class="devices-table" id="printersTable">
+        <caption class="sr-only">List of collecteden Printers, {{ printer | length }} entries</caption>
+        <thead>
+            <tr>
+                <th class="sortable" data-col="0">Name <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="1">IP-Address <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="2">Model <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="3">Pages <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th>Toner</th>
+                <th class="sortable" data-col="5">Location <span class="sort-indicator" aria-hidden="true"></span></th>
+                <th class="sortable" data-col="6">Status <span class="sort-indicator" aria-hidden="true"></span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in printer %}
+            {% set snmp = d.snmp %}
+            <tr>
+                <td class="col-name">
+                    <svg width="14" height="14" style="color:var(--primary);vertical-align:middle;margin-right:4px"
+                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="9" rx="1"/>
+                        <rect x="6" y="14" width="12" height="7"/>
+                    </svg>
+                    {{ d.name or '—' }}
+                    {% if d.color %}
+                    <span class="printer-cap-badge" title="Farbdruck">F</span>
+                    {% endif %}
+                    {% if d.duplex %}
+                    <span class="printer-cap-badge printer-cap-duplex" title="Duplex">D</span>
+                    {% endif %}
+                </td>
+                <td class="col-serial monospace">{{ d.ip_address or '—' }}</td>
+                <td>
+                    {% if snmp %}
+                        {% if snmp.manufacturer %}
+                        <span class="muted">{{ snmp.manufacturer }}</span><br>
+                        {% endif %}
+                        {{ snmp.model or d.treiber or '—' }}
+                    {% else %}
+                        <span class="muted">{{ d.treiber or '—' }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if snmp and snmp.pages_total is not none %}
+                        {{ "{:,}".format(snmp.pages_total).replace(",", ".") }}
+                        {% if snmp.pages_color is not none %}
+                        <br><span class="muted" title="Farbpages">F: {{ "{:,}".format(snmp.pages_color).replace(",", ".") }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="muted">—</span>
+                    {% endif %}
+                </td>
+                <td>{{ toner_bars(snmp) }}</td>
+                <td>{{ d.location or '—' }}</td>
+                <td>
+                    <span class="status-badge printer-status-{{ d.status | replace(' ', '-') }}">{{ d.status or 'unknown' }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M6 9V2h12v7"/><rect x="2" y="9" width="20" height="9" rx="1"/>
+        <rect x="6" y="14" width="12" height="7"/>
+    </svg>
+    <p>No printers found for the current search.</p>
+    <a href="/printers" class="btn-reset">Reset Search</a>
+</div>
+{% endif %}
+
+<script>
+document.querySelectorAll('.btn-delete-scan').forEach(btn => {
+    btn.addEventListr('click', async function() {
+        const id = this.dataset.id;
+        const hostname = this.dataset.hostname;
+        if (!confirm(`Scanner-entry "${hostname}" wirklich delete?`)) return;
+        const resp = await fetch('/api/printer-scan/' + id, {method: 'DELETE'});
+        if (resp.ok) {
+            location.reload();
+        } else {
+            const d = await resp.json().catch(() => ({}));
+            alert('Error: ' + (d.detail || 'Unknown'));
+        }
+    });
+});
+
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    document.addEventListr('keydown', function(e) {
+        const day = document.activeElement.dayName;
+        if (e.key === '/' && document.activeElement !== searchInput &&
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(day)) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+            searchInput.blur();
+        }
+    });
+}
+
+(function() {
+    const table = document.getElementById('printersTable');
+    if (!table) return;
+    let sortCol = -1, sortAsc = true;
+    const headers = table.querySelectorAll('th[data-col]');
+    headers.forEach(th => {
+        th.addEventListr('click', function() {
+            const col = parseInt(this.dataset.col);
+            sortAsc = sortCol === col ? !sortAsc : true;
+            sortCol = col;
+            sortTable(col, sortAsc);
+            headers.forEach(h => {
+                const ind = h.querySelector('.sort-indicator');
+                if (!ind) return;
+                if (parseInt(h.dataset.col) === col) {
+                    ind.textContent = sortAsc ? '▲' : '▼';
+                    h.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+                } else {
+                    ind.textContent = '';
+                    h.removeAttribute('aria-sort');
+                }
+            });
+        });
+    });
+    function sortTable(col, asc) {
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        rows.sort((a, b) => {
+            const av = (a.cells[col]?.innerText || '').trim().toLowerCase();
+            const bv = (b.cells[col]?.innerText || '').trim().toLowerCase();
+            if (col === 3) {
+                return asc ? (parseInt(av.replace(/\D/g,'')) || 0) - (parseInt(bv.replace(/\D/g,'')) || 0)
+                           : (parseInt(bv.replace(/\D/g,'')) || 0) - (parseInt(av.replace(/\D/g,'')) || 0);
+            }
+            return asc ? av.localeCompare(bv, 'de') : bv.localeCompare(av, 'de');
+        });
+        tbody.append(...rows);
+    }
+})();
+</script>
+{% endblock %}

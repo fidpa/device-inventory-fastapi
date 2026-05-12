@@ -1,0 +1,36 @@
+# nginx reverse proxy for device-inventory-fastapi
+# Copy to /etc/nginx/sites-available/inventory.conf
+# Replace 'inventory.example.com' with your real domain.
+# Run: sudo nginx -t && sudo systemctl reload nginx
+
+server {
+    listen 80;
+    server_name inventory.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name inventory.example.com;
+
+    # TLS — Let's Encrypt paths (adjust if using a different CA)
+    ssl_certificate     /etc/letsencrypt/live/inventory.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/inventory.example.com/privkey.pem;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers off;
+
+    # HSTS (enable after verifying TLS works correctly)
+    # add_header Strict-Transport-Security "max-age=63072000" always;
+
+    # Proxy to uvicorn
+    location / {
+        proxy_pass         http://127.0.0.1:8004;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+}

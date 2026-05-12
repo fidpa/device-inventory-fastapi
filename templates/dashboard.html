@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Device Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Devices total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{% if avg_ram %}{{ avg_ram }} GB{% else %}—{% endif %}</div>
+        <div class="stat-label">Ø RAM</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ ohne_assignment }}</div>
+        <div class="stat-label">Ohne Assignment</div>
+    </div>
+    <div class="stat-card {% if ohne_inventory_number > 0 %}stat-card-warn{% endif %}">
+        <div class="stat-value">{{ ohne_inventory_number }}</div>
+        <div class="stat-label">Ohne Inventory Number</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{% if newest %}{{ newest[:10] }}{% else %}—{% endif %}</div>
+        <div class="stat-label">Newest Collection</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{% if oldest %}{{ oldest[:10] }}{% else %}—{% endif %}</div>
+        <div class="stat-label">Oldest Collection</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{% if latest_import %}{{ latest_import | datetime }}{% else %}—{% endif %}</div>
+        <div class="stat-label">Latest Import</div>
+    </div>
+</div>
+
+<div class="detail-grid" style="margin-top: 1.5rem;">
+
+    <!-- OS-Verteilung -->
+    <section class="detail-card" aria-labelledby="sec-os-verteilung">
+        <h2 id="sec-os-verteilung">Operating System-Verteilung</h2>
+        {% if os_stats %}
+        {% set max_os = os_stats[0].count %}
+        <div class="bar-chart" role="list">
+            {% for row in os_stats %}
+            <div class="bar-row" role="listitem">
+                <span class="bar-label">{{ row.os_name or 'Unknown' }}</span>
+                <div class="bar-track" aria-hidden="true">
+                    <div class="bar-fill"
+                         style="width: {{ (row.count / max_os * 100) | int }}%"></div>
+                </div>
+                <span class="bar-value">{{ row.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+    <!-- Status-Verteilung -->
+    <section class="detail-card" aria-labelledby="sec-status-verteilung">
+        <h2 id="sec-status-verteilung">Status-Verteilung</h2>
+        {% if status_stats %}
+        {% set max_status = status_stats[0].count %}
+        <div class="bar-chart" role="list">
+            {% for row in status_stats %}
+            <div class="bar-row" role="listitem">
+                <span class="bar-label">
+                    <span class="status-badge status-{{ row.status }}">{{ row.status }}</span>
+                </span>
+                <div class="bar-track" aria-hidden="true">
+                    <div class="bar-fill bar-fill-{{ row.status }}"
+                         style="width: {{ (row.count / max_status * 100) | int }}%"></div>
+                </div>
+                <span class="bar-value">{{ row.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No data</p>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
