@@ -50,7 +50,7 @@ The collector writes JSON to disk, then uploads. It does **not** talk to the Fas
 - **Schema decoupling**: when we add new fields to the database, old collectors keep working. New collectors can include extra fields; importers ignore unknown ones.
 - **Offline-first**: the collector works without network access. Failed uploads are saved to the user's Desktop and emailed manually — no data loss.
 - **Auditability**: every JSON file is a permanent record of what was on the device at that moment. We can re-import after a schema migration.
-- **No client credentials**: the collector knows the WebDAV password (an *app-specific* one with no other privileges), but never the application's admin password or session secret.
+- **No client credentials**: the collector knows the WebDAV password (an _app-specific_ one with no other privileges), but never the application's admin password or session secret.
 
 ### WebDAV as a queue
 
@@ -62,7 +62,7 @@ The WebDAV inbox acts as a simple message queue:
 
 Why not Redis / RabbitMQ / Kafka? Because:
 
-- The volume is *trivial* — dozens of files per week, not per second.
+- The volume is _trivial_ — dozens of files per week, not per second.
 - WebDAV is already needed for software distribution (downloading the collector to end users), so we're not adding a new system.
 - Operators already understand WebDAV. They don't need to learn `redis-cli`.
 

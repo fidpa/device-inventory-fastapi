@@ -78,7 +78,7 @@ Templates use `data:` URIs for inlined SVG icons. If you'd rather load icons fro
 
 `fetch()` / `XMLHttpRequest` / WebSocket connections are limited to the same origin. The app makes no cross-origin API calls.
 
-## What's *not* set
+## What's _not_ set
 
 ### `Strict-Transport-Security`
 
@@ -100,7 +100,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 
 ### `X-XSS-Protection`
 
-Deprecated in modern browsers (replaced by CSP). Setting it has no effect in current Chrome/Firefox; older versions had bugs that made `X-XSS-Protection: 1; mode=block` *enable* exploits. Don't set it.
+Deprecated in modern browsers (replaced by CSP). Setting it has no effect in current Chrome/Firefox; older versions had bugs that made `X-XSS-Protection: 1; mode=block` _enable_ exploits. Don't set it.
 
 ## How to verify
 

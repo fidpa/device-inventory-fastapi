@@ -21,7 +21,7 @@ Collects macOS system information, saves it as **JSON**, and uploads it to a Web
 5. Done — no Gatekeeper warning (signed + notarized).
 
 > **Legacy variant (`RUN.command`)**:
-> On first launch macOS shows: *"RUN.command cannot be opened"*.
+> On first launch macOS shows: _"RUN.command cannot be opened"_.
 > Workaround: right-click → **Open** → **Open** to confirm.
 > (Required only once; subsequent double-clicks work directly.)
 > Prefer `DeviceCollector.app` whenever possible.

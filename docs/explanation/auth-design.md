@@ -48,7 +48,7 @@ To verify the cookie:
 4. Use `hmac.compare_digest()` (constant-time comparison — important to prevent timing attacks).
 5. Reject if the timestamp is older than `COOKIE_MAX_AGE`.
 
-This means **the server stores no session state**. There's no Redis session store, no session table, no garbage collection of expired entries. The cookie *is* the session.
+This means **the server stores no session state**. There's no Redis session store, no session table, no garbage collection of expired entries. The cookie _is_ the session.
 
 ### Why not JWT?
 
