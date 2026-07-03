@@ -1,6 +1,6 @@
 [project]
 name = "device-inventory-fastapi"
-version = "1.0.0"
+version = "1.1.0"
 description = "FastAPI-based device inventory management with cross-platform sysinfo collection"
 readme = "README.md"
 license = { file = "LICENSE" }

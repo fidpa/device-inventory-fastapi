@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-07-04
+
+### Fixed
+- Import endpoints (`/api/import`, `/api/import/printers`) no longer block the event loop:
+  the import subprocess runs in a worker thread, keeping the app responsive during imports
+  (previously frozen for up to 120 s)
+- Login rate limiting and audit logs now resolve the real client IP behind the nginx
+  reverse proxy (via `X-Real-IP`); previously all clients shared a single 127.0.0.1
+  bucket, so five failed attempts from anyone locked out everyone
+- One-time service costs (`once` interval) are no longer counted toward the annual
+  total in the services PDF export
+- Import timestamps are stored with the local UTC offset; previously they were stored
+  as naive UTC but displayed as local time, showing times 1–2 hours off
+
+### Changed
+- SQLite connections use a 5-second `busy_timeout`, so concurrent writes (import timer
+  + web app) wait briefly instead of failing with "database is locked"
+
 ## [1.0.0] — 2026-05-10
 
 ### Added
