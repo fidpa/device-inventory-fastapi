@@ -10,6 +10,7 @@ Start:
   uvicorn app:app --host 127.0.0.1 --port 8004 --no-access-log
 """
 
+import asyncio
 import base64
 import csv
 import hashlib
@@ -108,6 +109,17 @@ def _verify_token(token: str) -> bool:
 
 
 # ─── Rate-Limiting (In-Memory, pro IP) ───────────────────────────────────────
+
+
+def _client_ip(request: Request) -> str:
+    """Determine the real client IP. Behind a reverse proxy request.client.host
+    is always 127.0.0.1; nginx sets X-Real-IP to the client address (overwriting
+    any client-supplied value, so it cannot be spoofed)."""
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
+
 
 _rl_lock = threading.Lock()
 _rl_attempts: dict[str, list[float]] = {}
@@ -242,6 +254,8 @@ def get_db() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys = ON")
+    # Wait on concurrent writes (import timer) instead of "database is locked"
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -459,7 +473,7 @@ async def login_page(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 async def login_submit(request: Request):
     """Verify password and set session cookie."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _client_ip(request)
 
     if _is_rate_limited(client_ip):
         log.warning("Rate limit reached for %s", client_ip)
@@ -640,7 +654,7 @@ async def device_detail(request: Request, device_id: int):
 @app.post("/api/import")
 async def api_import(request: Request):
     """Trigger Nextcloud import and return status."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _client_ip(request)
     log.info("Import requested by %s", client_ip)
 
     import_script = APP_DIR / "scripts" / "import_sysinfo.py"
@@ -648,7 +662,9 @@ async def api_import(request: Request):
         raise HTTPException(status_code=500, detail="Import script not found")
 
     try:
-        result = subprocess.run(
+        # to_thread: subprocess.run would otherwise block the event loop for up to 120s
+        result = await asyncio.to_thread(
+            subprocess.run,
             [sys.executable, str(import_script)],
             capture_output=True,
             text=True,
@@ -1050,7 +1066,8 @@ def _build_services_pdf(rows) -> bytes:
     for r in rows:
         k = r["kosten"]
         ivl = r["kosten_intervall"] or "yearly"
-        yeares = (k * MULTIPLIERS.get(ivl, 1)) if k is not None else None
+        # "once" (and unknown intervals) must not count towards annual costs
+        yeares = (k * MULTIPLIERS[ivl]) if (k is not None and ivl in MULTIPLIERS) else None
         if yeares:
             total_annual += yeares
         enriched.append((r, yeares))
@@ -1628,7 +1645,7 @@ async def export_printers_csv(
 @app.post("/api/import/printers")
 async def api_import_printers(request: Request):
     """Trigger printer import from Nextcloud."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _client_ip(request)
     log.info("Printer import requested by %s", client_ip)
 
     import_script = APP_DIR / "scripts" / "import_printers.py"
@@ -1636,7 +1653,9 @@ async def api_import_printers(request: Request):
         raise HTTPException(status_code=500, detail="Import script not found")
 
     try:
-        result = subprocess.run(
+        # to_thread: subprocess.run would otherwise block the event loop for up to 120s
+        result = await asyncio.to_thread(
+            subprocess.run,
             [sys.executable, str(import_script)],
             capture_output=True,
             text=True,
@@ -1668,7 +1687,7 @@ async def delete_printer_scan(scan_id: int, request: Request):
         conn.execute("DELETE FROM printer_scans WHERE id = ?", (scan_id,))
         conn.commit()
         log.info(
-            "Printer scan %s (%s) deleted by %s", scan_id, row["hostname"], request.client.host
+            "Printer scan %s (%s) deleted by %s", scan_id, row["hostname"], _client_ip(request)
         )
         return {"status": "ok", "deleted": scan_id, "hostname": row["hostname"]}
     except HTTPException:

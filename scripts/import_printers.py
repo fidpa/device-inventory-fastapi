@@ -24,7 +24,7 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -66,6 +66,8 @@ def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    # Wait on concurrent writes (web app) instead of "database is locked"
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -115,7 +117,7 @@ def download_json(session: requests.Session, filename: str) -> dict:
 
 def insert_scan(conn: sqlite3.Connection, filename: str, data: dict) -> None:
     """Upsert by hostname: one entry per WTS machine, updated with each new scan."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
     printer = data.get("printer") or []
     hostname = data.get("collected_by")
     json_payload = json.dumps(data, ensure_ascii=False)
@@ -147,7 +149,7 @@ def _finalize_log(
 ) -> None:
     if log_id is None:
         return
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
     try:
         conn.execute(
             "UPDATE printer_import_log SET completed_am = ?, new_scans = ?, error = ? WHERE id = ?",
@@ -233,7 +235,7 @@ def main() -> int:
 
     try:
         if not args.dry_run:
-            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+            now = datetime.now().astimezone().isoformat(timespec="seconds")
             try:
                 cur = conn.execute("INSERT INTO printer_import_log (started_at) VALUES (?)", (now,))
                 log_id = cur.lastrowid

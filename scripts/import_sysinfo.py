@@ -23,7 +23,7 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -65,6 +65,8 @@ def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    # Wait on concurrent writes (web app) instead of "database is locked"
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -187,7 +189,7 @@ def upsert_device(conn: sqlite3.Connection, filename: str, data: dict, existing:
     """INSERT new device or UPDATE technical fields for known filename.
     Manual fields (note, status, issued_to, output_since, accessories, vpn) are preserved."""
     fields = extract_fields(data)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
     params = {
         "file": filename,
         **fields,
@@ -282,7 +284,7 @@ def _finalize_log(
     """Close the import log entry."""
     if log_id is None:
         return
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
     try:
         conn.execute(
             """UPDATE import_log
@@ -313,7 +315,7 @@ def main() -> int:
     fatal_error: str | None = None
 
     try:
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
         try:
             cur = conn.execute("INSERT INTO import_log (started_at) VALUES (?)", (now,))
             log_id = cur.lastrowid
