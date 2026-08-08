@@ -51,6 +51,30 @@ log = logging.getLogger("app.devices")
 APP_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = APP_DIR / "db" / "devices.db"
 
+
+def _project_version() -> str:
+    """Return the release version from pyproject.toml, the single source of truth.
+
+    Never hard-code the version here: an unmaintained second copy is how
+    /openapi.json came to advertise 0.1.0 while the released tag said 1.1.0.
+    tomllib is stdlib from Python 3.11; on 3.10 (still covered by
+    requires-python) the field is read with a regex instead.
+    """
+    pyproject = APP_DIR / "pyproject.toml"
+    try:
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            match = re.search(r'(?m)^version\s*=\s*"([^"]+)"', pyproject.read_text("utf-8"))
+            return match.group(1) if match else "0.0.0"
+        with pyproject.open("rb") as fh:
+            return tomllib.load(fh)["project"]["version"]
+    except (OSError, KeyError, ValueError):
+        # Deployed without pyproject.toml, or the file is unreadable — the app
+        # must still start; the wrong version is a cosmetic defect, not fatal.
+        return "0.0.0"
+
+
 # ─── Nextcloud-Configuration ─────────────────────────────────────────────────
 
 _NC_URL = os.getenv("NEXTCLOUD_URL", "").rstrip("/")
@@ -194,7 +218,13 @@ async def _lifespan(application: FastAPI):  # noqa: N803
     yield
 
 
-app = FastAPI(title="Device Inventory", docs_url=None, redoc_url=None, lifespan=_lifespan)
+app = FastAPI(
+    title="Device Inventory",
+    version=_project_version(),
+    docs_url=None,
+    redoc_url=None,
+    lifespan=_lifespan,
+)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(AuthMiddleware)
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")

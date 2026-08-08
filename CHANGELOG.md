@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-08-08
+
+### Fixed
+- The OpenAPI schema now reports the released version instead of `0.1.0`. The app was
+  created without a `version=` argument, so FastAPI supplied its own default: every
+  authenticated client reading `/openapi.json` saw `0.1.0` while the published tags said
+  `1.0.0` and `1.1.0`. The version is now read from `pyproject.toml` at startup, which
+  remains the single source of truth — there is no second copy to keep in sync
+  (`/health` was never affected; it returns a plain `OK`)
+
 ## [1.1.0] — 2026-07-04
 
 ### Fixed
