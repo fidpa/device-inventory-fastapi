@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] — 2026-08-12
+
+### Fixed
+- `setup/setup.sh`, `scripts/import_printers.py` and `scripts/import_sysinfo.py` are now
+  marked executable in the repository. All three carry a shebang line and are meant to be
+  run directly (`./setup/setup.sh`, or from a cron entry); without the executable bit, a
+  direct invocation failed with "Permission denied" and required prefixing every call with
+  `bash` or `python3`
+
 ## [1.1.1] — 2026-08-08
 
 ### Fixed
